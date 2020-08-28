@@ -1,0 +1,27 @@
+{
+  "name": "csv_mail",
+  "version": "1.0.0",
+  "description": "Test script for connecting to the Roundcube Webmail server and extracting CSV-Files in order to further process and persist those",
+  "main": "index.js",
+  "scripts": {
+    "build": "rimraf ./build && tsc",
+    "start:dev": "nodemon",
+    "start": "npm run build && node build/index.js",
+    "lint": "eslint . --ext .ts",
+    "prettier-format": "prettier --config .prettierrc 'src/**/*.ts' --write",
+    "prettier-watch": "onchange 'src/**/*.ts' -- prettier --write {{changed}}"
+  },
+  "author": "Katharina Borys/Giulia Winterhoff",
+  "license": "ISC",
+  "devDependencies": {
+    "imap": "^0.8.19",
+    "rimraf": "^3.0.2"
+  },
+  "dependencies": {
+    "@types/node": "^14.6.1",
+    "imap-simple": "^5.0.0",
+    "nodemon": "^2.0.4",
+    "ts-node": "^9.0.0",
+    "typescript": "^4.0.2"
+  }
+}
