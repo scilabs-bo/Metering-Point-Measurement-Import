@@ -1,14 +1,20 @@
 "use strict";
-console.log('Hello world!');
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+console.log('Starting script...');
+var config_js_1 = __importDefault(require("./config.js"));
 var Imap = require('imap'), inspect = require('util').inspect;
 //explicit configuration for connections // must be extracted by use of 'npm convict' later
 var imap = new Imap({
-    user: 'stwh.data@scilabs.de',
-    password: 'LoiB8V62sJ6Y3HLfL3X2',
-    host: 'imap.scilabs.de',
-    port: 993,
+    user: config_js_1.default.get('user'),
+    password: config_js_1.default.get('password'),
+    host: config_js_1.default.get('host'),
+    port: config_js_1.default.get('port'),
     tls: true
 });
+console.log('User: ' + imap.user, 'Password: ' + imap.password, 'Host: ' + imap.host, 'Port: ' + imap.port);
 //Opening the inbox
 function openInbox(cb) {
     imap.openBox('INBOX', true, cb);
