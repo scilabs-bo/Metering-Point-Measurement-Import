@@ -1,13 +1,15 @@
-console.log('Hello world!');
+console.log('Starting script...');
 
+import config from './config.js';
 var Imap = require('imap'), inspect = require('util').inspect;
+
  
-//explicit configuration for connections // must be extracted by use of 'npm convict' later
+//explicit configuration for connections // extracted from config.js
 var imap = new Imap({
-    user: 'stwh.data@scilabs.de',
-    password: 'LoiB8V62sJ6Y3HLfL3X2',
-    host: 'imap.scilabs.de',
-    port: 993,
+    user: config.get('user'),
+    password: config.get('password'),
+    host: config.get('host'),
+    port: config.get('port'),
     tls: true
 });
 
