@@ -1,6 +1,10 @@
 console.log('Starting script...');
 
 import config from './config.js';
+const fs = require('fs')
+const base64 = require('base64-stream')
+const {Base64Decode} = require("base64-stream");
+
 var Imap = require('imap'), inspect = require('util').inspect;
 
  
@@ -13,54 +17,110 @@ var imap = new Imap({
     tls: true
 });
 
-//Opening the inbox
-function openInbox(cb: any) {
-    imap.openBox('INBOX', true, cb);
+//setting params to upperString
+function toUpper(thing: any) { return thing && thing.toUpperCase ? thing.toUpperCase() : thing;}
+
+//function for finding attachments
+function findAttachmentParts(struct: any, attachments: any) {
+  attachments = attachments ||  [];
+
+  for (var i = 0, len = struct.length, r; i < len; ++i) {
+    if (Array.isArray(struct[i])) {
+      findAttachmentParts(struct[i], attachments);
+    } else {
+      if (struct[i].disposition && ['INLINE', 'ATTACHMENT'].indexOf(toUpper(struct[i].disposition.type)) > -1) {
+        attachments.push(struct[i]);
+      }
+    }
   }
-   
-  imap.once('ready', function() {
-    openInbox(function(err: Error, box: any) {
-      if (err) throw err;
-      var f = imap.seq.fetch('1', { //needs to be adjusted, so that the latest email will be extracted
-        bodies: 'HEADER.FIELDS (FROM TO SUBJECT DATE)',
-        struct: true,
-        markSeen: false
+  return attachments;
+}
+
+//function containing stream to export all attachments to a new file
+function buildAttMessageFunction(attachment: any) {
+  var filename = attachment.params.name;
+  var encoding = attachment.encoding;
+
+  return function (msg: any, seqno: any) {
+    var prefix = '(#' + seqno + ') ';
+    msg.on('body', function(stream: any, info: any) {
+      //Create a write stream so that we can stream the attachment to file;
+      console.log(prefix + 'Streaming this attachment to file', filename, info);
+      var pathfile = process.cwd() + '/src/csv/' + filename; 
+      var writeStream = fs.createWriteStream(pathfile);
+      writeStream.on('finish', function() {
+        console.log(prefix + 'Done writing to file %s', filename);
       });
-      f.on('message', function(msg: any, seqno: any) {
-        console.log('Message #%d', seqno);
-        var prefix = '(#' + seqno + ') ';
-        msg.on('body', function(stream: any, info: any) {
-          var buffer = '';
-          stream.on('data', function(chunk: any) {
-            buffer += chunk.toString('utf8');
+
+      //decoding during stream
+      if (toUpper(encoding) === 'BASE64') {
+        //the stream is base64 encoded, so here the stream is decoded on the fly and piped to the write stream (file)
+        stream.pipe(new Base64Decode()).pipe(writeStream);
+      } else  {
+        //here we have none or some other decoding streamed directly to the file which renders it useless probably
+        stream.pipe(writeStream);
+      }
+    });
+    msg.once('end', function() {
+      console.log(prefix + 'Finished attachment %s', filename);
+    });
+  };
+}
+
+imap.once('ready', function() {
+  imap.openBox('INBOX', true, function(err: Error, box: any) {
+    if (err) throw err;
+    var f = imap.seq.fetch(box.messages.total + ':*', { //further modifications required to extract ALL emails and attachments from one day
+      bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE)'],
+      struct: true
+    });
+    f.on('message', function (msg: any, seqno: Number) {
+      console.log('Message #%d', seqno);
+      var prefix = '(#' + seqno + ') ';
+      msg.on('body', function(stream: any, info: any) {
+        var buffer = '';
+        stream.on('data', function(chunk: any) {
+          buffer += chunk.toString('utf8');
+        });
+        stream.once('end', function() {
+          console.log(prefix + 'Parsed header: %s', Imap.parseHeader(buffer));
+        });
+      });
+      msg.once('attributes', function(attrs: any) {
+        var attachments = findAttachmentParts(attrs.struct, null); 
+        console.log(prefix + 'Has attachments: %d', attachments.length);
+        for (var i = 1, len=attachments.length ; i < len; ++i) { //var set to 1, so that first attachment (which is the mail content) is skipped
+          var attachment = attachments[i];
+          console.log(prefix + 'Fetching attachment %s', attachment.params.name);
+          var f = imap.fetch(attrs.uid , { 
+            bodies: [attachment.partID],
+            struct: true
           });
-          stream.once('end', function() {
-            console.log(prefix + 'Parsed header: %s', inspect(Imap.parseHeader(buffer)));
-          });
-        });
-        msg.once('attributes', function(attrs: any) {
-          console.log(prefix + 'Attributes: %s', inspect(attrs, false, 8));
-        });
-        msg.once('end', function() {
-          console.log(prefix + 'Finished');
-        });
+
+          //function to process attachment message
+          f.on('message', buildAttMessageFunction(attachment));
+        }
       });
-      f.once('error', function(err: Error) {
-        console.log('Fetch error: ' + err);
-      });
-      f.once('end', function() {
-        console.log('Done fetching the first e-mail. The connection will be closed now.');
-        imap.end();
+      msg.once('end', function() {
+        console.log(prefix + 'Finished email');
       });
     });
+    f.once('error', function(err: Error) {
+      console.log('Fetch error: ' + err);
+    });
+    f.once('end', function() {
+      console.log('Done fetching all messages!');
+      imap.end();
+    });
   });
-   
-  imap.once('error', function(err: Error) {
-    console.log(err);
-  });
-   
-  imap.once('end', function() {
-    console.log('Connection ended');
-  });
-   
-  imap.connect();
+});
+
+imap.once('error', function(err: Error) {
+  console.log(err);
+});
+
+imap.once('end', function() {
+  console.log('Connection ended');
+});
+
+imap.connect();
