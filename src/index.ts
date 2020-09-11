@@ -4,6 +4,10 @@ import config from './config.js';
 const fs = require('fs')
 const base64 = require('base64-stream')
 const {Base64Decode} = require("base64-stream");
+import * as dataForge from 'data-forge';
+import 'data-forge-fs';
+const {DateTime} = require('luxon');
+const iconv = require('iconv-lite');
 
 var Imap = require('imap'), inspect = require('util').inspect;
 
@@ -67,6 +71,64 @@ function buildAttMessageFunction(attachment: any) {
   };
 }
 
+// function for transforming date and columns of csv data
+// function transformDate(attachment: any) {
+function transformDate() {
+  
+  var headerlines = '';
+  var csvlines = '';
+  var headerPart = true;
+  
+  const readline = require('linebyline'),
+    rl = readline('src/csv/51333017254.CSV', {
+      retainBuffer: true
+    });
+
+  rl.on('line', (data: any) => {
+    var line = iconv.decode(data, 'utf16');
+
+    line = line.replace(/\0/g, '');  // remove null characters
+    line = line.trim();
+
+    if (line.startsWith('Datum')) {
+      headerPart = false;
+    }
+    if (line!=null && line!=='') {  // line not empty
+      if (headerPart == true) {
+          headerlines = headerlines.concat(line, '\n');
+      }
+      else {
+        if (line.includes('Wert ist ungültig') == false) {
+          csvlines = csvlines.concat(line, '\n');
+        }
+      }
+    }
+  });
+
+  setTimeout( () => {
+
+    const csvData = dataForge.fromCSV(csvlines);
+
+    var hms:string[];
+    const csvTransf = csvData.select(row => {
+      var dateobj = DateTime.fromFormat(row.Datum, 'dd.MM.yyyy');
+      hms = row.Uhrzeit.split(':');
+
+      return {
+        Datum: dateobj.set({hour: hms[0], minute: hms[1], second: hms[2]}).toISO(),
+        'Wirk Verbrauch in KWH': row['Wirk Verbrauch in KWH'],
+        'Blind Verbrauch in kvarh': row['Blind Verbrauch in kvarh'],
+        'Wirk Einspeisung in KWH': row['Wirk Einspeisung in KWH'],
+        'Blind Einspeisung in kvarh': row['Blind Einspeisung in kvarh'],
+      }
+    })
+
+    const csvOutputString = csvTransf.toCSV();
+    fs.writeFileSync('MailTestOut.csv', headerlines + csvOutputString);
+
+  }, 1000);
+}
+
 imap.once('ready', function() {
   imap.openBox('INBOX', true, function(err: Error, box: any) {
     if (err) throw err;
@@ -124,3 +186,5 @@ imap.once('end', function() {
 });
 
 imap.connect();
+
+transformDate();
