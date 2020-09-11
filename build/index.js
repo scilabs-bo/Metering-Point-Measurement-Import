@@ -1,4 +1,23 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -8,6 +27,10 @@ var config_js_1 = __importDefault(require("./config.js"));
 var fs = require('fs');
 var base64 = require('base64-stream');
 var Base64Decode = require("base64-stream").Base64Decode;
+var dataForge = __importStar(require("data-forge"));
+require("data-forge-fs");
+var DateTime = require('luxon').DateTime;
+var iconv = require('iconv-lite');
 var Imap = require('imap'), inspect = require('util').inspect;
 //explicit configuration for connections // extracted from config.js
 var imap = new Imap({
@@ -63,6 +86,51 @@ function buildAttMessageFunction(attachment) {
         });
     };
 }
+// function for transforming date and columns of csv data
+// function transformDate(attachment: any) {
+function transformDate() {
+    var headerlines = '';
+    var csvlines = '';
+    var headerPart = true;
+    var readline = require('linebyline'), rl = readline('src/csv/51333017254.CSV', {
+        retainBuffer: true
+    });
+    rl.on('line', function (data) {
+        var line = iconv.decode(data, 'utf16');
+        line = line.replace(/\0/g, ''); // remove null characters
+        line = line.trim();
+        if (line.startsWith('Datum')) {
+            headerPart = false;
+        }
+        if (line != null && line !== '') { // line not empty
+            if (headerPart == true) {
+                headerlines = headerlines.concat(line, '\n');
+            }
+            else {
+                if (line.includes('Wert ist ungültig') == false) {
+                    csvlines = csvlines.concat(line, '\n');
+                }
+            }
+        }
+    });
+    setTimeout(function () {
+        var csvData = dataForge.fromCSV(csvlines);
+        var hms;
+        var csvTransf = csvData.select(function (row) {
+            var dateobj = DateTime.fromFormat(row.Datum, 'dd.MM.yyyy');
+            hms = row.Uhrzeit.split(':');
+            return {
+                Datum: dateobj.set({ hour: hms[0], minute: hms[1], second: hms[2] }).toISO(),
+                'Wirk Verbrauch in KWH': row['Wirk Verbrauch in KWH'],
+                'Blind Verbrauch in kvarh': row['Blind Verbrauch in kvarh'],
+                'Wirk Einspeisung in KWH': row['Wirk Einspeisung in KWH'],
+                'Blind Einspeisung in kvarh': row['Blind Einspeisung in kvarh'],
+            };
+        });
+        var csvOutputString = csvTransf.toCSV();
+        fs.writeFileSync('MailTestOut.csv', headerlines + csvOutputString);
+    }, 1000);
+}
 imap.once('ready', function () {
     imap.openBox('INBOX', true, function (err, box) {
         if (err)
@@ -117,3 +185,4 @@ imap.once('end', function () {
     console.log('Connection ended');
 });
 imap.connect();
+transformDate();
