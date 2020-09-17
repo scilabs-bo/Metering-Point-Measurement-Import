@@ -104,7 +104,14 @@ dist
 .tern-port
 
 # Configuration file
-src/config.js
+src/development.json
 
 #Downloaded CSV-files
+csv
 *.csv
+
+# Compiled typescript
+build
+
+# Fck Apple
+.DS_Store
