@@ -36,7 +36,7 @@ const config = convict({
   }
 });
 
-config.loadFile(__dirname + '/development.json');
+config.loadFile('src/development.json');
 config.validate({ allowed: 'strict' });
 
 export default config;

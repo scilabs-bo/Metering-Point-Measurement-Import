@@ -1,11 +1,10 @@
-console.log('Starting script...');
-
 import config from './config';
 import 'data-forge-fs';
 import imaps, { ImapSimple, Message, ImapSimpleOptions } from 'imap-simple';
 import Connection from 'imap';
 import { ImapAttachment } from './types';
 import fs from 'fs';
+import { transformDate } from "./preprocessing"
 
 async function searchForUnseenMails(connection: ImapSimple): Promise<Message[]> {
   await connection.openBox('INBOX');
@@ -41,7 +40,13 @@ async function getAttachments(connection: ImapSimple, messages: Message[]): Prom
 }
 
 function storeCSV(attachments: ImapAttachment[]) {
-  fs.mkdirSync('csv');
+  try{
+    fs.mkdirSync('csv');
+    console.log("Created csv folder.")
+  } catch(e){
+    console.log("Skipping: Folder csv already exists.");
+  }
+
   for (let attachment of attachments) {
     fs.writeFileSync('csv/' + attachment.filename, attachment.data);
   };
@@ -59,64 +64,10 @@ async function main() {
 
   //TODO: Remove in production
   storeCSV(attachments);
+  transformDate(attachments[1]);
+
+  connection.end();
+  console.log("Closing connection.");
 }
-
-// function for transforming date and columns of csv data
-// function transformDate(attachment: any) {
-/*function transformDate() {
-
-  var headerlines = '';
-  var csvlines = '';
-  var headerPart = true;
-
-  const readline = require('linebyline'),
-    rl = readline('src/csv/51333017254.CSV', {
-      retainBuffer: true
-    });
-
-  rl.on('line', (data: any) => {
-    var line = iconv.decode(data, 'utf16');
-
-    line = line.replace(/\0/g, '');  // remove null characters
-    line = line.trim();
-
-    if (line.startsWith('Datum')) {
-      headerPart = false;
-    }
-    if (line != null && line !== '') {  // line not empty
-      if (headerPart == true) {
-        headerlines = headerlines.concat(line, '\n');
-      }
-      else {
-        if (line.includes('Wert ist ungültig') == false) {
-          csvlines = csvlines.concat(line, '\n');
-        }
-      }
-    }
-  });
-
-  setTimeout(() => {
-
-    const csvData = dataForge.fromCSV(csvlines);
-
-    var hms: string[];
-    const csvTransf = csvData.select(row => {
-      var dateobj = DateTime.fromFormat(row.Datum, 'dd.MM.yyyy');
-      hms = row.Uhrzeit.split(':');
-
-      return {
-        Datum: dateobj.set({ hour: hms[0], minute: hms[1], second: hms[2] }).toISO(),
-        'Wirk Verbrauch in KWH': row['Wirk Verbrauch in KWH'],
-        'Blind Verbrauch in kvarh': row['Blind Verbrauch in kvarh'],
-        'Wirk Einspeisung in KWH': row['Wirk Einspeisung in KWH'],
-        'Blind Einspeisung in kvarh': row['Blind Einspeisung in kvarh'],
-      }
-    })
-
-    const csvOutputString = csvTransf.toCSV();
-    fs.writeFileSync('MailTestOut.csv', headerlines + csvOutputString);
-
-  }, 1000);
-}*/
 
 main();
