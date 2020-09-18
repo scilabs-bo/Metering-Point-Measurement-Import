@@ -1,5 +1,4 @@
 import config from './config';
-import 'data-forge-fs';
 import imaps, { ImapSimple, Message, ImapSimpleOptions } from 'imap-simple';
 import Connection from 'imap';
 import { ImapAttachment } from './types';
@@ -64,7 +63,16 @@ async function main() {
 
   //TODO: Remove in production
   storeCSV(attachments);
-  transformDate(attachments[1]);
+
+  try{
+    fs.mkdirSync('csv_out');
+    console.log("Created csv_out folder.")
+  } catch(e){
+    console.log("Skipping: Folder csv_out already exists.");
+  }
+  for (let attachment of attachments) {
+    transformDate(attachment);
+  }
 
   connection.end();
   console.log("Closing connection.");

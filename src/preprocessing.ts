@@ -1,28 +1,35 @@
 import * as dataForge from 'data-forge';
-import * as dataForgeFS from 'data-forge-fs';
 import {DateTime} from 'luxon';
 import iconv from 'iconv-lite';
 import * as fs from 'fs';
 import { ImapAttachment } from './types';
+import { Readable } from 'stream';
+import readline from 'readline';
+
 
 // function for transforming date and columns of csv data
-// function transformDate(attachment: any) {
 export function transformDate(attachment: ImapAttachment) {
 
-  var headerlines = '';
-  var csvlines = '';
-  var headerPart = true;
+  let headerlines = '';
+  let csvlines = '';
+  let headerPart = true;
 
-  const readline = require('linebyline'),
-  rl = readline('csv/51332993942.CSV', {
-  retainBuffer: true
+  const buffer = iconv.decode(attachment.data,'utf16');
+  const stream = Readable.from(buffer.toString());
+
+  const rl = readline.createInterface({
+    input: stream,
+    output: process.stdout,
+    terminal: false
   });
 
-  rl.on('line', (data: any) => {
-    var line = iconv.decode(data, 'utf16');
+  rl.on('line', (line: string) => {
+    // let line = iconv.decode(data, 'utf16');
 
-    line = line.replace(/\0/g, '');  // remove null characters
+    // line = line.replace(/\0/g, '');  // remove null characters
+    line = line.replace(/,/g, '.');  // replace decimal comma by decimal point
     line = line.trim();
+    // console.log(line);
 
     if (line.startsWith('Datum')) {
       headerPart = false;
@@ -42,9 +49,9 @@ export function transformDate(attachment: ImapAttachment) {
   setTimeout(() => {
     const csvData = dataForge.fromCSV(csvlines);
 
-    var hms: number[];
+    let hms: number[];
     const csvTransf = csvData.select(row => {
-      var dateobj = DateTime.fromFormat(row.Datum, 'dd.MM.yyyy');
+      let dateobj = DateTime.fromFormat(row.Datum, 'dd.MM.yyyy');
       hms = row.Uhrzeit.split(':');
 
       return {
@@ -57,7 +64,7 @@ export function transformDate(attachment: ImapAttachment) {
     })
 
     const csvOutputString = csvTransf.toCSV();
-    fs.writeFileSync('MailTestOut.csv', headerlines + csvOutputString);
+    fs.writeFileSync('csv_out/out_' + attachment.filename, headerlines + csvOutputString);
 
   }, 2000);
 }
