@@ -1,20 +1,20 @@
 import * as dataForge from 'data-forge';
-import {DateTime} from 'luxon';
+import { DateTime } from 'luxon';
 import iconv from 'iconv-lite';
 import * as fs from 'fs';
-import { ImapAttachment } from './types';
+import { ImapAttachment, MeasurementDataRow, RawMeasurementDataRow } from './types';
 import { Readable } from 'stream';
 import readline from 'readline';
 
 
 // function for transforming date and columns of csv data
-export function transformDate(attachment: ImapAttachment) {
+export function transformDate(attachment: ImapAttachment): void {
 
   let headerlines = '';
   let csvlines = '';
   let headerPart = true;
 
-  const buffer = iconv.decode(attachment.data,'utf16');
+  const buffer = iconv.decode(attachment.data, 'utf16');
   const stream = Readable.from(buffer.toString());
 
   const rl = readline.createInterface({
@@ -48,18 +48,17 @@ export function transformDate(attachment: ImapAttachment) {
 
   setTimeout(() => {
     const csvData = dataForge.fromCSV(csvlines);
-
-    let hms: number[];
-    const csvTransf = csvData.select(row => {
-      let dateobj = DateTime.fromFormat(row.Datum, 'dd.MM.yyyy');
-      hms = row.Uhrzeit.split(':');
+    const csvTransf = csvData.select((row: RawMeasurementDataRow): MeasurementDataRow => {
+      const dateobj = DateTime.fromFormat(row.Datum, 'dd.MM.yyyy');
+      const hms = row.Uhrzeit.split(':').map(parseInt);
+      dateobj.set({ hour: hms[0], minute: hms[1], second: hms[2] })
 
       return {
-        Datum: dateobj.set({ hour: hms[0], minute: hms[1], second: hms[2] }).toISO(),
-        'Wirk Verbrauch in KWH': row['Wirk Verbrauch in KWH'],
-        'Blind Verbrauch in kvarh': row['Blind Verbrauch in kvarh'],
-        'Wirk Einspeisung in KWH': row['Wirk Einspeisung in KWH'],
-        'Blind Einspeisung in kvarh': row['Blind Einspeisung in kvarh'],
+        date: dateobj.toISO(),
+        effectiveConsumption: parseFloat(row['Wirk Verbrauch in KWH']),
+        blindConsumption: parseFloat(row['Blind Verbrauch in kvarh']),
+        activeFeed: parseFloat(row['Wirk Einspeisung in KWH']),
+        blindFeed: parseFloat(row['Blind Einspeisung in kvarh']),
       }
     })
 
