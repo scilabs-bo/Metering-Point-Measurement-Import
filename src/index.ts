@@ -3,7 +3,7 @@ import imaps, { ImapSimple, Message, ImapSimpleOptions } from 'imap-simple';
 import Connection from 'imap';
 import { ImapAttachment, ImapAttachmentPart, isImapAttachmentPart } from './types';
 import fs from 'fs';
-import { transformDate } from "./preprocessing"
+import { processAttachment } from "./preprocessing"
 
 async function searchForUnseenMails(connection: ImapSimple): Promise<Message[]> {
   await connection.openBox('INBOX');
@@ -70,7 +70,7 @@ async function main() {
     console.log("Skipping: Folder csv_out already exists.");
   }
   for (const attachment of attachments) {
-    transformDate(attachment);
+    processAttachment(attachment);
   }
 
   connection.end();
