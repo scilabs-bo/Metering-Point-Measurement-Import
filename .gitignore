@@ -115,3 +115,6 @@ build
 
 # Fck Apple
 .DS_Store
+
+# Transfomed CSV-files
+csv_out
