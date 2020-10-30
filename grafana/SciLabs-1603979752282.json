@@ -19,7 +19,9 @@
   "links": [],
   "panels": [
     {
-      "aliasColors": {},
+      "aliasColors": {
+        "blindfeed": "yellow"
+      },
       "bars": false,
       "dashLength": 10,
       "dashes": false,
@@ -34,7 +36,7 @@
       "fillGradient": 0,
       "gridPos": {
         "h": 9,
-        "w": 12,
+        "w": 24,
         "x": 0,
         "y": 0
       },
@@ -57,10 +59,24 @@
       },
       "percentage": false,
       "pluginVersion": "7.3.0",
-      "pointradius": 2,
-      "points": false,
+      "pointradius": 1,
+      "points": true,
       "renderer": "flot",
-      "seriesOverrides": [],
+      "seriesOverrides": [
+        {
+          "$$hashKey": "object:1153",
+          "alias": "blindfeed",
+          "fill": 1,
+          "fillGradient": 2,
+          "yaxis": 2
+        },
+        {
+          "$$hashKey": "object:1172",
+          "alias": "activeFeed",
+          "fill": 2,
+          "yaxis": 1
+        }
+      ],
       "spaceLength": 10,
       "stack": false,
       "steppedLine": false,
@@ -78,7 +94,7 @@
           ],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT \n  time_bucket('$__interval()', time) as \"time\",\n  AVG(activeFeed) as \"activeFeed\"\nFROM zeitreihen\nWHERE $__timeFilter(\"time\")\nGROUP BY time\nORDER BY time\n",
+          "rawSql": "SELECT \n  time_bucket('$__interval()', time) as \"time\",\n  AVG(activeFeed) as \"activeFeed\", AVG(blindfeed) as \"blindfeed\"\nFROM zeitreihen\nWHERE $__timeFilter(\"time\")\nGROUP BY time\nORDER BY time\n",
           "refId": "A",
           "select": [
             [
@@ -106,7 +122,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "ActiveFeed",
+      "title": "ActiveFeed - BlindFeed",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -124,7 +140,7 @@
         {
           "$$hashKey": "object:1625",
           "format": "short",
-          "label": null,
+          "label": "kWh",
           "logBase": 1,
           "max": null,
           "min": null,
@@ -133,7 +149,7 @@
         {
           "$$hashKey": "object:1626",
           "format": "short",
-          "label": null,
+          "label": "kvarh",
           "logBase": 1,
           "max": null,
           "min": null,
@@ -146,7 +162,9 @@
       }
     },
     {
-      "aliasColors": {},
+      "aliasColors": {
+        "blindconsumption": "blue"
+      },
       "bars": false,
       "dashLength": 10,
       "dashes": false,
@@ -160,249 +178,8 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 0
-      },
-      "hiddenSeries": false,
-      "id": 6,
-      "legend": {
-        "avg": true,
-        "current": false,
-        "max": true,
-        "min": true,
-        "show": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 2,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "7.3.0",
-      "pointradius": 2,
-      "points": true,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "format": "time_series",
-          "group": [],
-          "metricColumn": "none",
-          "rawQuery": false,
-          "rawSql": "SELECT\n  \"time\" AS \"time\",\n  blindconsumption\nFROM zeitreihen\nWHERE\n  $__timeFilter(\"time\")\nORDER BY 1",
-          "refId": "A",
-          "select": [
-            [
-              {
-                "params": [
-                  "blindconsumption"
-                ],
-                "type": "column"
-              }
-            ]
-          ],
-          "table": "zeitreihen",
-          "timeColumn": "\"time\"",
-          "timeColumnType": "timestamp",
-          "where": [
-            {
-              "name": "$__timeFilter",
-              "params": [],
-              "type": "macro"
-            }
-          ]
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "BlindConsumption",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "$$hashKey": "object:1333",
-          "format": "short",
-          "label": "",
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "$$hashKey": "object:1334",
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": null,
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 8
-      },
-      "hiddenSeries": false,
-      "id": 8,
-      "legend": {
-        "alignAsTable": false,
-        "avg": true,
-        "current": false,
-        "hideEmpty": false,
-        "max": true,
-        "min": true,
-        "rightSide": false,
-        "show": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 2,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": false
-      },
-      "percentage": false,
-      "pluginVersion": "7.3.0",
-      "pointradius": 1,
-      "points": true,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "format": "time_series",
-          "group": [],
-          "metricColumn": "none",
-          "rawQuery": false,
-          "rawSql": "SELECT\n  \"time\" AS \"time\",\n  blindfeed\nFROM zeitreihen\nWHERE\n  $__timeFilter(\"time\")\nORDER BY 1",
-          "refId": "A",
-          "select": [
-            [
-              {
-                "params": [
-                  "blindfeed"
-                ],
-                "type": "column"
-              }
-            ]
-          ],
-          "table": "zeitreihen",
-          "timeColumn": "\"time\"",
-          "timeColumnType": "timestamp",
-          "where": [
-            {
-              "name": "$__timeFilter",
-              "params": [],
-              "type": "macro"
-            }
-          ]
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "BlindFeed",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "$$hashKey": "object:1417",
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "$$hashKey": "object:1418",
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": null,
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
+        "h": 9,
+        "w": 24,
         "x": 0,
         "y": 9
       },
@@ -418,7 +195,7 @@
         "values": true
       },
       "lines": true,
-      "linewidth": 2,
+      "linewidth": 1,
       "nullPointMode": "null",
       "options": {
         "alertThreshold": true
@@ -428,7 +205,23 @@
       "pointradius": 1,
       "points": true,
       "renderer": "flot",
-      "seriesOverrides": [],
+      "seriesOverrides": [
+        {
+          "$$hashKey": "object:865",
+          "alias": "effectiveconsumption",
+          "fill": 2,
+          "legend": true,
+          "yaxis": 1
+        },
+        {
+          "$$hashKey": "object:1013",
+          "alias": "blindconsumption",
+          "color": "#FADE2A",
+          "fillGradient": 2,
+          "legend": true,
+          "yaxis": 2
+        }
+      ],
       "spaceLength": 10,
       "stack": false,
       "steppedLine": false,
@@ -438,7 +231,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT\n  \"time\" AS \"time\",\n  effectiveconsumption\nFROM zeitreihen\nWHERE\n  $__timeFilter(\"time\")\nORDER BY 1",
+          "rawSql": "SELECT \n  time_bucket('$__interval()', time) as \"time\",\n  AVG(effectiveconsumption) as \"effectiveconsumption\", AVG(blindconsumption) as \"blindconsumption\"\nFROM zeitreihen\nWHERE $__timeFilter(\"time\")\nGROUP BY time\nORDER BY time",
           "refId": "A",
           "select": [
             [
@@ -466,7 +259,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "EffectiveConsumption",
+      "title": "EffectiveConsumption - BlindConsumption",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -484,7 +277,7 @@
         {
           "$$hashKey": "object:1710",
           "format": "short",
-          "label": null,
+          "label": "kWh",
           "logBase": 1,
           "max": null,
           "min": null,
@@ -493,7 +286,7 @@
         {
           "$$hashKey": "object:1711",
           "format": "short",
-          "label": null,
+          "label": "kvarh",
           "logBase": 1,
           "max": null,
           "min": null,
@@ -514,12 +307,12 @@
     "list": []
   },
   "time": {
-    "from": "2020-10-26T22:45:28.303Z",
-    "to": "2020-10-27T23:24:08.145Z"
+    "from": "2020-10-27T07:26:08.000Z",
+    "to": "2020-10-28T19:00:48.000Z"
   },
   "timepicker": {},
   "timezone": "",
   "title": "SciLabs",
   "uid": "RJS1rlpGk",
-  "version": 3
+  "version": 10
 }
