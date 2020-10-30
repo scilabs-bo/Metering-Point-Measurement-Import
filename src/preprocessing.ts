@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import { ImapAttachment, MeasurementDataRow, RawMeasurementDataRow } from './types';
 import { Readable } from 'stream';
 import readline from 'readline';
+import { insertRows, createMetaInfoTable } from "./db_connection"
 
 
 // function for transforming date and columns of csv data
@@ -12,7 +13,7 @@ function transformDate(date: string, time: string): DateTime {
   return DateTime.fromFormat(`${date} ${time}`, 'dd.MM.yyyy HH:mm:ss');
 }
 
-export function processAttachment(attachment: ImapAttachment): void {
+export async function processAttachment(attachment: ImapAttachment) {
 
   let headerlines = '';
   let csvlines = '';
@@ -28,7 +29,6 @@ export function processAttachment(attachment: ImapAttachment): void {
   });
 
   rl.on('line', (line: string) => {
-    // let line = iconv.decode(data, 'utf16');
 
     // line = line.replace(/\0/g, '');  // remove null characters
     line = line.replace(/,/g, '.');  // replace decimal comma by decimal point
@@ -43,7 +43,7 @@ export function processAttachment(attachment: ImapAttachment): void {
         headerlines = headerlines.concat(line, '\n');
       }
       else {
-        if (!line.includes('Wert ist ungültig')) {
+        if (!line.includes('Wert ist ungültig')) { //|| "Wert ist interpoliert"?
           csvlines = csvlines.concat(line, '\n');
         }
       }
@@ -53,6 +53,7 @@ export function processAttachment(attachment: ImapAttachment): void {
   rl.once('close', () => {
     const csvData = dataForge.fromCSV(csvlines);
     const csvTransf = csvData.select((row: RawMeasurementDataRow): MeasurementDataRow => {
+
       return {
         date: transformDate(row.Datum, row.Uhrzeit).toISO(),
         effectiveConsumption: parseFloat(row['Wirk Verbrauch in KWH']),
@@ -61,6 +62,12 @@ export function processAttachment(attachment: ImapAttachment): void {
         blindFeed: parseFloat(row['Blind Einspeisung in kvarh']),
       }
     })
+
+    const array_rows = csvTransf.toArray()
+
+    //TODO: Make one table for each csv-file
+    //console.log(headerlines)
+    insertRows(array_rows) //passing whole row-array to db-method
 
     const csvOutputString = csvTransf.toCSV();
     fs.writeFileSync('csv_out/out_' + attachment.filename, headerlines + csvOutputString);

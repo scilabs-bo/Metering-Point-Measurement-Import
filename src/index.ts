@@ -4,6 +4,7 @@ import Connection from 'imap';
 import { ImapAttachment, ImapAttachmentPart, isImapAttachmentPart } from './types';
 import fs from 'fs';
 import { processAttachment } from "./preprocessing"
+import { createInitialTable, endDBConnection } from './db_connection';
 
 async function searchForUnseenMails(connection: ImapSimple): Promise<Message[]> {
   await connection.openBox('INBOX');
@@ -62,6 +63,7 @@ async function main() {
 
   //TODO: Remove in production
   storeCSV(attachments);
+  //createInitialTable();
 
   try {
     fs.mkdirSync('csv_out');
@@ -69,12 +71,16 @@ async function main() {
   } catch (e) {
     console.log("Skipping: Folder csv_out already exists.");
   }
-  for (const attachment of attachments) {
-    processAttachment(attachment);
-  }
+
+  processAttachment(attachments[0])
+
+  /*Promise.all(attachments.map(async attachment => {
+    processAttachment(attachment)
+  }))*/
 
   connection.end();
   console.log("Closing connection.");
 }
 
-void main();
+void main()
+//endDBConnection(); //TODO: Herausfinden, an welcher Stelle das hier aufgerufen werden soll
