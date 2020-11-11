@@ -5,7 +5,8 @@ import * as fs from 'fs';
 import { ImapAttachment, MeasurementDataRow, RawMeasurementDataRow } from './types';
 import { Readable } from 'stream';
 import readline from 'readline';
-import { insertRows, createMetaInfoTable } from "./db_connection"
+import { insertRows, createMetaInfoTable, getZaehlpunktId } from "./db_connection"
+import { stringify } from 'querystring';
 
 
 // function for transforming date and columns of csv data
@@ -33,7 +34,6 @@ export async function processAttachment(attachment: ImapAttachment) {
     // line = line.replace(/\0/g, '');  // remove null characters
     line = line.replace(/,/g, '.');  // replace decimal comma by decimal point
     line = line.trim();
-    // console.log(line);
 
     if (line.startsWith('Datum')) {
       headerPart = false;
@@ -65,12 +65,25 @@ export async function processAttachment(attachment: ImapAttachment) {
 
     const array_rows = csvTransf.toArray()
 
-    //TODO: Make one table for each csv-file
-    //console.log(headerlines)
-    insertRows(array_rows) //passing whole row-array to db-method
+    //! All csv-files are saved in one table
+    var headerlines_df = dataForge.fromCSV(headerlines)
+    var headerlines_array = headerlines_df.toArray()
+
+    //Extracting value of "zaehlpunkt"
+    var zaehlpunktStr =  JSON.stringify(headerlines_array[0]).split(':').pop()?.slice(1, -2);
+    var zaehlpunktId = getZaehlpunktId(String(zaehlpunktStr))
+
+    zaehlpunktId.then(function(res) {
+      let id = JSON.stringify(res.rows[0]).split(':')[1].replace('}', '')
+      console.log("ZAEHLPUNKT-ID", id)
+    })
+
+  
+    //insertRows(array_rows) //passing whole row-array to db-method
 
     const csvOutputString = csvTransf.toCSV();
     fs.writeFileSync('csv_out/out_' + attachment.filename, headerlines + csvOutputString);
   });
 }
+
 

@@ -4,7 +4,7 @@ import Connection from 'imap';
 import { ImapAttachment, ImapAttachmentPart, isImapAttachmentPart } from './types';
 import fs from 'fs';
 import { processAttachment } from "./preprocessing"
-import { createInitialTable, endDBConnection } from './db_connection';
+import { createInitialTable, endDBConnection, createMetaInfoTable } from './db_connection';
 
 async function searchForUnseenMails(connection: ImapSimple): Promise<Message[]> {
   await connection.openBox('INBOX');
@@ -38,19 +38,6 @@ async function getAttachments(connection: ImapSimple, messages: Message[]): Prom
   return Promise.all(attachments);
 }
 
-function storeCSV(attachments: ImapAttachment[]) {
-  try {
-    fs.mkdirSync('csv');
-    console.log("Created csv folder.")
-  } catch (e) {
-    console.log("Skipping: Folder csv already exists.");
-  }
-
-  for (const attachment of attachments) {
-    fs.writeFileSync('csv/' + attachment.filename, attachment.data);
-  }
-}
-
 //explicit configuration for connections // extracted from config.js
 async function main() {
   const imapOptions: ImapSimpleOptions = {
@@ -61,9 +48,8 @@ async function main() {
   const mails = await searchForUnseenMails(connection);
   const attachments = await getAttachments(connection, mails);
 
-  //TODO: Remove in production
-  storeCSV(attachments);
   //createInitialTable();
+  //createMetaInfoTable();
 
   try {
     fs.mkdirSync('csv_out');
@@ -72,14 +58,12 @@ async function main() {
     console.log("Skipping: Folder csv_out already exists.");
   }
 
-  processAttachment(attachments[0])
-
-  /*Promise.all(attachments.map(async attachment => {
+  Promise.all(attachments.map(async attachment => {
     processAttachment(attachment)
-  }))*/
+  }))
 
   connection.end();
-  console.log("Closing connection.");
+  console.log("Closing IMAP connection.");
 }
 
 void main()
