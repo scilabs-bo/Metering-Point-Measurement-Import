@@ -5,16 +5,14 @@ import * as fs from 'fs';
 import { ImapAttachment, MeasurementDataRow, RawMeasurementDataRow } from './types';
 import { Readable } from 'stream';
 import readline from 'readline';
-import { insertRows, createMetaInfoTable, getZaehlpunktId } from "./db_connection"
-import { stringify } from 'querystring';
-
+import { insertRows, getZaehlpunktId } from "./db_connection"
 
 // function for transforming date and columns of csv data
 function transformDate(date: string, time: string): DateTime {
   return DateTime.fromFormat(`${date} ${time}`, 'dd.MM.yyyy HH:mm:ss');
 }
 
-export async function processAttachment(attachment: ImapAttachment) {
+export function processAttachment(attachment: ImapAttachment): void {
 
   let headerlines = '';
   let csvlines = '';
@@ -66,20 +64,18 @@ export async function processAttachment(attachment: ImapAttachment) {
     const array_rows = csvTransf.toArray()
 
     //! All csv-files are saved in one table
-    var headerlines_df = dataForge.fromCSV(headerlines)
-    var headerlines_array = headerlines_df.toArray()
-
+    const headerlines_df = dataForge.fromCSV(headerlines)
+    const headerlines_array = headerlines_df.toArray()
+    
     //Extracting value of "zaehlpunkt"
-    var zaehlpunktStr =  JSON.stringify(headerlines_array[0]).split(':').pop()?.slice(1, -2);
-    var zaehlpunktId = getZaehlpunktId(String(zaehlpunktStr))
+    const zaehlpunktStr =  JSON.stringify(headerlines_array[0]).split(':').pop()?.slice(1, -2);
+    const zaehlpunktId = getZaehlpunktId(String(zaehlpunktStr))
 
-    zaehlpunktId.then(function(res) {
-      let id = JSON.stringify(res.rows[0]).split(':')[1].replace('}', '')
-      console.log("ZAEHLPUNKT-ID", id)
+    void zaehlpunktId.then(function(res) {
+      const id: string = JSON.stringify(res.rows[0]).split(':')[1].replace('}', '')
+      console.log(zaehlpunktStr, ": ", id)
+      insertRows(array_rows, id) //passing whole row-array to db-method
     })
-
-  
-    //insertRows(array_rows) //passing whole row-array to db-method
 
     const csvOutputString = csvTransf.toCSV();
     fs.writeFileSync('csv_out/out_' + attachment.filename, headerlines + csvOutputString);

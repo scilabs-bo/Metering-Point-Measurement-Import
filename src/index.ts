@@ -12,14 +12,15 @@ async function searchForUnseenMails(connection: ImapSimple): Promise<Message[]> 
   // Last 24 hours
   const delay = 24 * 3600 * 1000;
   const yesterday = new Date();
-  yesterday.setTime(Date.now() - delay);
+  yesterday.setTime(Date.now()); //-delay wurde entfernt, da sonst 8 Mails returned werden (?) 
 
-  const searchCriteria = ['UNSEEN', ['SINCE', yesterday.toISOString()]];
+  const searchCriteria = ['UNSEEN', ['SINCE', yesterday.toISOString()]]; 
   const fetchOptions: Connection.FetchOptions = { bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE)'], struct: true };
   return await connection.search(searchCriteria, fetchOptions);
 }
 
 async function getAttachments(connection: ImapSimple, messages: Message[]): Promise<ImapAttachment[]> {
+
   let attachments: Promise<ImapAttachment>[] = [];
 
   for (const message of messages) {
@@ -34,12 +35,25 @@ async function getAttachments(connection: ImapSimple, messages: Message[]): Prom
       });
     attachments = attachments.concat(newAttachments);
   }
-
   return Promise.all(attachments);
+}
+
+function storeCSV(attachments: ImapAttachment[]) {
+  try {
+    fs.mkdirSync('csv');
+    console.log("Created csv folder.")
+  } catch (e) {
+    console.log("Skipping: Folder csv already exists.");
+  }
+
+  for (const attachment of attachments) {
+    fs.writeFileSync('csv/' + attachment.filename, attachment.data);
+  }
 }
 
 //explicit configuration for connections // extracted from config.js
 async function main() {
+
   const imapOptions: ImapSimpleOptions = {
     imap: config.get('imap')
   };
@@ -48,8 +62,11 @@ async function main() {
   const mails = await searchForUnseenMails(connection);
   const attachments = await getAttachments(connection, mails);
 
-  //createInitialTable();
+  //TODO: Remove in production
+  storeCSV(attachments);
+
   //createMetaInfoTable();
+  //createInitialTable();
 
   try {
     fs.mkdirSync('csv_out');
@@ -58,9 +75,13 @@ async function main() {
     console.log("Skipping: Folder csv_out already exists.");
   }
 
-  Promise.all(attachments.map(async attachment => {
+  /*Promise.all(attachments.map(async attachment => {
     processAttachment(attachment)
-  }))
+  }))*/
+
+  for (const attachment of attachments) {
+    processAttachment(attachment);
+  }
 
   connection.end();
   console.log("Closing IMAP connection.");

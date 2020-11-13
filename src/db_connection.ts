@@ -1,61 +1,46 @@
-import { Client, ConnectionConfig, QueryResult } from 'pg';
-import { ImapAttachment, MeasurementDataRow } from './types';
+import { Client, QueryResult } from 'pg';
+import { MeasurementDataRow } from './types';
 import config from './config';
-import { callbackify } from 'util';
-
 
 // * Connection parameters retrieved from config
 const client = new Client(config.get('database'));
 
-  export async function createInitialTable() {
+  export async function createInitialTable(): Promise<void> {
     await client.connect()
 
     //Callback
-     await client.query('CREATE TABLE IF NOT EXISTS zeitreihen (time TIMESTAMPTZ NOT NULL, effectiveConsumption FLOAT NOT NULL, blindConsumption FLOAT NOT NULL, activeFeed FLOAT NOT NULL, blindFeed FLOAT NOT NULL, CONSTRAINT zaehlpunkt FOREIGN KEY(id) REFERENCES metainfo(id));', (err: Error, res: QueryResult) => {
+     client.query('CREATE TABLE IF NOT EXISTS zeitreihen (time TIMESTAMPTZ NOT NULL, effectiveConsumption FLOAT NOT NULL, blindConsumption FLOAT NOT NULL, activeFeed FLOAT NOT NULL, blindFeed FLOAT NOT NULL, zaehlpunkt INTEGER REFERENCES metainfo(id));', (err: Error, res: QueryResult) => {
       console.log(err, res);  
-      client.end();
+      void client.end();
     })
   }
 
-  export async function getZaehlpunktId(zaehlpunktStr: string) {
+  export async function getZaehlpunktId(zaehlpunktStr: string): Promise<QueryResult> {
     try{
       await client.connect()
     }  catch (e) {"DB connection already exists, skipping."}
 
-    var queryStr = 'SELECT id FROM metainfo WHERE zaehlpunkt = $1';
-    var values = [zaehlpunktStr];
-    var id: string = '';
-
-    //Callback
-    // const res = await client.query(queryStr, values, (err: Error, res: QueryResult) => {
-    //   id = JSON.stringify(res.rows[0]).split(':')[1].replace('}', '')
-    //   console.log(id)
-    // })
-
+    const queryStr = 'SELECT id FROM metainfo WHERE zaehlpunkt = $1';
+    const values = [zaehlpunktStr];
     const res = await client.query(queryStr, values)
     
-    //TODO:  Replace with promises later
-    setTimeout(() => {
-      client.end();
-    }, 800);
-
     return res
   }
 
-  export async function createMetaInfoTable() {
+  export async function createMetaInfoTable(): Promise<void> {
     await client.connect();
 
-    var zaehlpunkte = ['51332993942', '51333017254', '51332994099', '51332993950'];
+    const zaehlpunkte = ['51332993942', '51333017254', '51332994099', '51332993950'];
 
-    var queryStr = '';
-    var values = [];
+    let queryStr = '';
+    let values = [];
 
-    await client.query('CREATE TABLE IF NOT EXISTS metainfo (id SMALLSERIAL PRIMARY KEY, zaehlpunkt VARCHAR NOT NULL)', (err: Error, res: QueryResult) => {
+    client.query('CREATE TABLE IF NOT EXISTS metainfo (id SMALLSERIAL PRIMARY KEY, zaehlpunkt VARCHAR NOT NULL UNIQUE)', (err: Error, res: QueryResult) => {
       console.log(err,res);
     });
 
-    for (var i = 0; i < zaehlpunkte.length; i++) {
-      queryStr = 'insert into metainfo (zaehlpunkt) VALUES ($1)'
+    for (let i = 0; i < zaehlpunkte.length; i++) {
+      queryStr = 'insert into metainfo (zaehlpunkt) VALUES ($1) ON CONFLICT (zaehlpunkt) DO NOTHING'
       values = [zaehlpunkte[i]];
 
       client.query(queryStr, values, (err: Error, res: QueryResult) => {
@@ -64,45 +49,51 @@ const client = new Client(config.get('database'));
     }
     //TODO:  Replace with promises later
     setTimeout(() => {
-      client.end();
+      void client.end();
     }, 1000);
   }
 
   //! For development only(!)
-  export async function deleteAllTables() {
+  export async function deleteAllTables(): Promise<void> {
     try{
       await client.connect()
     }  catch (e) {"DB connection already exists, skipping."}
 
       //Callback
-      await client.query('drop schema if exists public cascade; create schema public', (err: Error, res: QueryResult) => {
+      client.query('drop schema if exists public cascade; create schema public', (err: Error, res: QueryResult) => {
         console.log(err, res);  
-        client.end()
+        void client.end()
       })
     }
 
   // Function for inserting rows of each csv-file
-  export function insertRows(array_rows: MeasurementDataRow[]) {
-    try{
+  export function insertRows(array_rows: MeasurementDataRow[], id: string): void {
+  /* try{
        client.connect()
-    }  catch (UnhandledRejectionWarning) {"DB connection already exists, skipping."}
+    }  catch (UnhandledPromiseRejectionWarning) {"DB connection already exists, skipping."} */
 
     //* Parameterized query
-    var values = []
-    var queryStr = ''
+    let values = []
+    let queryStr = ''
 
-    for (var i = 0; i < array_rows.length; i++) {
-      values = [array_rows[i].date, array_rows[i].effectiveConsumption, array_rows[i].blindConsumption, array_rows[i].activeFeed, array_rows[i].blindFeed],
-      queryStr = 'insert into zeitreihen (time, effectiveConsumption, blindConsumption, activeFeed, blindFeed) VALUES ($1, $2, $3, $4, $5)',
+    for (let i = 0; i < array_rows.length; i++) {
+      values = [array_rows[i].date, array_rows[i].effectiveConsumption, array_rows[i].blindConsumption, array_rows[i].activeFeed, array_rows[i].blindFeed, id];
+      queryStr = 'insert into zeitreihen (time, effectiveConsumption, blindConsumption, activeFeed, blindFeed, zaehlpunkt) VALUES ($1, $2, $3, $4, $5, $6)';
 
        client.query(queryStr, values, (err: Error, res: QueryResult) => {
-        console.log(err, res);  
+        console.log(res, err);  
       })
     }
+
+        //TODO:  Replace with promise later
+        setTimeout(() => {
+          void client.end();
+        }, 6000);
+    
   }
 
-  export function endDBConnection() {
-     client.end()
+  export function endDBConnection(): void{
+     void client.end()
   }
 
     
