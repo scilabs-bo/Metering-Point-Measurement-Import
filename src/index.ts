@@ -4,7 +4,7 @@ import Connection from 'imap';
 import { ImapAttachment, ImapAttachmentPart, isImapAttachmentPart } from './types';
 import fs from 'fs';
 import { processAttachment } from "./preprocessing"
-import { createInitialTable, endDBConnection, createMetaInfoTable } from './db_connection';
+import { DBConnection } from './db_connection';
 
 async function searchForUnseenMails(connection: ImapSimple): Promise<Message[]> {
   await connection.openBox('INBOX');
@@ -61,6 +61,7 @@ async function main() {
   const connection = await imaps.connect(imapOptions);
   const mails = await searchForUnseenMails(connection);
   const attachments = await getAttachments(connection, mails);
+  connection.end();
 
   //TODO: Remove in production
   storeCSV(attachments);
@@ -75,17 +76,12 @@ async function main() {
     console.log("Skipping: Folder csv_out already exists.");
   }
 
-  /*Promise.all(attachments.map(async attachment => {
-    processAttachment(attachment)
-  }))*/
-
+  const con = new DBConnection();
+  await con.connect();
   for (const attachment of attachments) {
-    processAttachment(attachment);
+    await processAttachment(con, attachment);
   }
-
-  connection.end();
-  console.log("Closing IMAP connection.");
+  await con.end();
 }
 
 void main()
-//endDBConnection(); //TODO: Herausfinden, an welcher Stelle das hier aufgerufen werden soll
