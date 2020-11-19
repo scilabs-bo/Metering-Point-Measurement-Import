@@ -5,11 +5,24 @@ import * as fs from 'fs';
 import { ImapAttachment, MeasurementDataRow, RawMeasurementDataRow } from './types';
 import { Readable } from 'stream';
 import readline from 'readline';
-import { DBConnection } from "./db_connection"
+import { DBConnection } from "./dbConnection"
 
-// function for transforming date and columns of csv data
-function transformDate(date: string, time: string): DateTime {
-  return DateTime.fromFormat(`${date} ${time}`, 'dd.MM.yyyy HH:mm:ss');
+export class AttachmentProcessor {
+  private con: DBConnection;
+  constructor(con: DBConnection) {
+    this.con = con;
+  }
+
+  //regex query oder ersten x zeilen weg
+  async process(attachment: ImapAttachment): Promise<void> {
+    let headerPart = true;
+    const csvText = iconv.decode(attachment.data, 'utf16');
+    const csvData = dataForge.fromCSV(csvText, { columnNames: [ '' ] }) //Statuszeilen -> db: interpoliert?
+  }
+
+  private transformDate(date: string, time: string): DateTime {
+    return DateTime.fromFormat(`${date} ${time}`, 'dd.MM.yyyy HH:mm:ss');
+  }
 }
 
 export async function processAttachment(con: DBConnection, attachment: ImapAttachment): Promise<void> {
@@ -17,36 +30,6 @@ export async function processAttachment(con: DBConnection, attachment: ImapAttac
     let headerlines = '';
     let csvlines = '';
     let headerPart = true;
-  
-    const buffer = iconv.decode(attachment.data, 'utf16');
-    const stream = Readable.from(buffer);
-  
-    const rl = readline.createInterface({
-      input: stream,
-      output: process.stdout,
-      terminal: false
-    });
-  
-    rl.on('line', (line: string) => {
-  
-      // line = line.replace(/\0/g, '');  // remove null characters
-      line = line.replace(/,/g, '.');  // replace decimal comma by decimal point
-      line = line.trim();
-  
-      if (line.startsWith('Datum')) {
-        headerPart = false;
-      }
-      if (line !== null && line !== '') {  // line not empty
-        if (headerPart) {
-          headerlines = headerlines.concat(line, '\n');
-        }
-        else {
-          if (!line.includes('Wert ist ungültig')) { //|| "Wert ist interpoliert"?
-            csvlines = csvlines.concat(line, '\n');
-          }
-        }
-      }
-    });
   
     rl.once('close', async () => {
       const csvData = dataForge.fromCSV(csvlines);
