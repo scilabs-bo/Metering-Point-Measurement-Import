@@ -1,4 +1,4 @@
-import { processAttachment } from "./preprocessing"
+import { processAttachment } from "./attachmentProcessor"
 import { DBConnection } from './dbConnection';
 import { AttachmentRetriever } from './attachmentRetriever';
 

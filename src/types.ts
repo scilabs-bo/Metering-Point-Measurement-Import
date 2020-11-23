@@ -27,16 +27,24 @@ export type ImapMessagePart = ImapInlinePart | ImapAttachmentPart;
 export interface RawMeasurementDataRow {
   Datum: string,
   Uhrzeit: string,
-  'Wirk Verbrauch in KWH': string,
-  'Blind Verbrauch in kvarh': string,
-  'Wirk Einspeisung in KWH': string,
-  'Blind Einspeisung in kvarh': string
+  effectiveConsumption: string,
+  statusEffCon: string,
+  blindConsumption: string,
+  statusBlindCon: string,
+  activeFeed: string,
+  statusActiveFeed: string,
+  blindFeed: string,
+  statusBlindFeed: string
 }
 
 export interface MeasurementDataRow {
   date: string,
   effectiveConsumption: number,
+  statusEffCon: string,
   blindConsumption: number,
+  statusBlindCon: string,
   activeFeed: number,
-  blindFeed: number
+  statusActiveFeed: string,
+  blindFeed: number,
+  statusBlindFeed: string
 }
