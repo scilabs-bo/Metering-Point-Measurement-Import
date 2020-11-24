@@ -25,8 +25,8 @@ export interface ImapAttachmentPart {
 export type ImapMessagePart = ImapInlinePart | ImapAttachmentPart;
 
 export interface RawMeasurementDataRow {
-  Datum: string,
-  Uhrzeit: string,
+  date: string,
+  time: string,
   effectiveConsumption: string,
   statusEffCon: string,
   blindConsumption: string,

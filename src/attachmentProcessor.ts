@@ -3,70 +3,87 @@ import { DateTime } from 'luxon';
 import iconv from 'iconv-lite';
 import * as fs from 'fs';
 import { ImapAttachment, MeasurementDataRow, RawMeasurementDataRow } from './types';
-import { Readable } from 'stream';
-import readline from 'readline';
 import { DBConnection } from "./dbConnection"
+import { kMaxLength } from 'buffer';
 
 export class AttachmentProcessor {
-  private con: DBConnection;
+   private con: DBConnection;
+  
   constructor(con: DBConnection) {
     this.con = con;
   }
 
-  //regex query oder ersten x zeilen weg
-  async process(attachment: ImapAttachment): Promise<void> {
-    const csvText = iconv.decode(attachment.data, 'utf16');
-    csvText.split('\n').splice(0,10).join('\n');  // remove first 10 lines
-    const csvData = dataForge.fromCSV(csvText, { columnNames: ['Datum', 'Uhrzeit',
+  private async process(attachment: ImapAttachment): Promise<dataForge.IDataFrame> {
+    const csvText = iconv.decode(attachment.data, 'utf16').split('\n').splice(10, kMaxLength).join('\n'); 
+    const csvData = dataForge.fromCSV(csvText, { columnNames: ['date', 'time',
                                                 'effectiveConsumption', 'statusEffCon',
                                                 'blindConsumption', 'statusBlindCon',
                                                 'activeFeed', 'statusActiveFeed',
-                                                'blindFeed', 'statusBlindFeed' ] }) //Statuszeilen -> db: interpoliert?
+                                                'blindFeed', 'statusBlindFeed' ] }); //Statuszeilen -> db: interpoliert?
 
     const df = csvData.select((row: RawMeasurementDataRow): MeasurementDataRow => {
       return {
-        date: this.transformDate(row.Datum, row.Uhrzeit).toISO(),
-        effectiveConsumption: parseFloat(row.effectiveConsumption),
-        statusEffCon:                    row.statusEffCon,
-        blindConsumption:     parseFloat(row.blindConsumption),
-        statusBlindCon:                  row.statusBlindCon,
-        activeFeed:           parseFloat(row.activeFeed),
-        statusActiveFeed:                row.statusActiveFeed,
-        blindFeed:            parseFloat(row.blindFeed),
-        statusBlindFeed:                 row.statusBlindFeed
+        date: this.transformDate(row.date, row.time).toISO(),
+        effectiveConsumption: parseFloat(row.effectiveConsumption.replace(',','.')),
+        statusEffCon:                    this.setStatusFlag(row.statusEffCon),
+        blindConsumption:     parseFloat(row.blindConsumption.replace(',','.')),
+        statusBlindCon:                  this.setStatusFlag(row.statusEffCon),
+        activeFeed:           parseFloat(row.activeFeed.replace(',','.')),
+        statusActiveFeed:                this.setStatusFlag(row.statusEffCon),
+        blindFeed:            parseFloat(row.blindFeed.replace(',','.')),
+        statusBlindFeed:                 this.setStatusFlag(row.statusEffCon)
       }
     })
+    return df
+  }
+
+  private setStatusFlag(value: string) {
+    if (value === "Wert ist gültig") {
+      return "true"
+    } 
+    return "false"
   }
 
   private transformDate(date: string, time: string): DateTime {
     return DateTime.fromFormat(`${date} ${time}`, 'dd.MM.yyyy HH:mm:ss');
   }
-}
 
-export async function processAttachment(con: DBConnection, attachment: ImapAttachment): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const csvProcessor = new AttachmentProcessor(con);
-    const csvData = csvProcessor.process(attachment);
-      
-    //Extracting value of "zaehlpunkt"
-    const meterPointMatch = headerlines.match(/Zählpunkt: ([0-9]*)/);
-    if(!meterPointMatch) {
+  //TODO: Wenn IDs aus getMeterPointODFromDB korrekt ankommen, insertRow() testen
+  async saveAttachmentInDB(attachment: ImapAttachment): Promise<void> {
+    return new Promise((resolve, reject) => {
+ 
+      let id_fk = this.getMeterPointIDFromDB(attachment.filename)
+
+      var df = this.process(attachment).then(function(this: DBConnection, result) {
+        const csvOutputString = result.toCSV();
+        fs.writeFileSync('src/csv_out/' + attachment.filename, csvOutputString);
+        console.log("ID: ", id_fk)
+        //this.con.insertRows(df, id_fk)
+      })
+      resolve();
+    })
+  }
+
+
+  //TODO: Methode fertigstellen
+  private getMeterPointIDFromDB(filename: string) : number {
+    const meterPoint = filename.split('.')[0];
+    let id_fk : number | null = 0;
+
+    if(meterPoint === null) {
       console.log("Unable to extract meter point identifier from file");
-      return reject("Unable to extract meter point identifier from file");
     }
-    
-    let id = await con.getMeterPointId(meterPointMatch[1]);
-    if(id === null) {
-      console.log(`Unable to determine database id of meter point ${meterPointMatch[1]}`);
-      return reject(`Unable to determine database id of meter point ${meterPointMatch[1]}`);
-    }
-    console.log(meterPointMatch[1], ": ", id);
-    await con.insertRows(df, id);
 
-    const csvOutputString = df.toCSV();
-    fs.writeFileSync('csv_out/out_' + attachment.filename, headerlines + csvOutputString);
-    resolve();
-  })
+    let id_db = this.con.getMeterPointId(meterPoint).then(function(this: number , result) {
+      if(result === null) {
+        console.log(`Unable to determine database id of meter point ${meterPoint}`);
+      }
+     // this.id_fk = result;
+    });
+    return id_fk;
+  }
 }
+
+
 
 

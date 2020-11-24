@@ -3,18 +3,20 @@ import { MeasurementDataRow } from './types';
 import config from './config';
 import { IDataFrame } from 'data-forge';
 
-// * Connection parameters retrieved from config
 export class DBConnection {
   private client = new Client(config.get('database'));
 
   async connect(): Promise<void> {
-    try {
-      await this.client.connect();
-      await this.createLoadProfileTable();
-      await this.createMeterPointTable();
-    } catch(e) {
-      //* Connection may be already established - ignore error for now
-    }
+    return new Promise((resolve, reject) => {
+      try{
+        this.client.connect();
+        this.createMeterPointTable();
+        this.createLoadProfileTable();
+        resolve()
+      } catch(e) {
+          reject();
+      }
+    })
   }
 
   async end(): Promise<void> {
@@ -40,7 +42,17 @@ export class DBConnection {
   async insertRows(df: IDataFrame<number, MeasurementDataRow>, id: number): Promise<void> {
     const queries: Promise<QueryResult<any>>[] = [];
     for(let i = 0; i < df.count(); i++) {
-      queries.push(this.client.query(insertRowQuery, [df.at(i)?.date ?? null, df.at(i)?.effectiveConsumption ?? null, df.at(i)?.blindConsumption ?? null, df.at(i)?.activeFeed ?? null, df.at(i)?.blindFeed ?? null, id]));
+      queries.push(this.client.query(insertRowQuery,   
+        [df.at(i)?.date ?? null, 
+          df.at(i)?.effectiveConsumption ?? null, 
+          df.at(i)?.statusEffCon ?? null, 
+          df.at(i)?.blindConsumption ?? null, 
+          df.at(i)?.statusBlindCon ?? null,
+          df.at(i)?.activeFeed ?? null, 
+          df.at(i)?.statusActiveFeed ?? null,
+          df.at(i)?.blindFeed ?? null, 
+          df.at(i)?.statusBlindFeed ?? null,
+          id]));
     }
     await Promise.all(queries);
   }
@@ -48,11 +60,15 @@ export class DBConnection {
 
 const createLoadProfileTableQuery = `
   CREATE TABLE IF NOT EXISTS loadProfileData (
-    time TIMESTAMPTZ NOT NULL,
+    date TIMESTAMPTZ NOT NULL,
     effectiveConsumption FLOAT NOT NULL,
+    statusEffCon BOOLEAN NOT NULL,
     blindConsumption FLOAT NOT NULL,
+    statusBlindCon BOOLEAN NOT NULL,
     activeFeed FLOAT NOT NULL,
+    statusActiveFeed BOOLEAN NOT NULL,
     blindFeed FLOAT NOT NULL,
+    statusBlindFeed BOOLEAN NOT NULL,
     meterPoint INTEGER REFERENCES meterPoints(id)
   );
 `;
@@ -64,5 +80,5 @@ const createMeterPointTableQuery = `
   );
 `;
 const selectMeterPointIdQuery = 'SELECT id FROM meterPoints WHERE meterPoint = $1';
-const insertMeterPointIdQuery = 'INSERT INTO meterPoints (meterPoint) VALUES ($1) RETURNING id';
-const insertRowQuery = 'INSERT INTO loadProfileData (time, effectiveConsumption, blindConsumption, activeFeed, blindFeed, meterPoint) VALUES ($1, $2, $3, $4, $5, $6)';
+const insertMeterPointIdQuery = 'INSERT INTO meterPoints (meterPoint) VALUES ($1) ON CONFLICT (meterPoint) DO NOTHING RETURNING id';
+const insertRowQuery = 'INSERT INTO loadProfileData (time, effectiveConsumption, statusEffCon, blindConsumption, statusBlindCon, activeFeed, statusActiveFeed, blindFeed, statusBlindFeed, meterPoint) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)';
