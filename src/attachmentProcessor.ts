@@ -20,7 +20,7 @@ export class AttachmentProcessor {
                                                 'effectiveConsumption', 'statusEffCon',
                                                 'blindConsumption', 'statusBlindCon',
                                                 'activeFeed', 'statusActiveFeed',
-                                                'blindFeed', 'statusBlindFeed' ] }); //Statuszeilen -> db: interpoliert?
+                                                'blindFeed', 'statusBlindFeed' ] }); 
 
     const df = csvData.select((row: RawMeasurementDataRow): MeasurementDataRow => {
       return {
@@ -35,6 +35,10 @@ export class AttachmentProcessor {
         statusBlindFeed:                 this.setBooleanFlag(row.statusEffCon)
       }
     })
+
+    //TODO: Kann weg, wenn DataFrame ok
+    const csvOutputString = df.toCSV();
+    fs.writeFileSync('src/csv_out/' + attachment.filename, csvOutputString);
     return df
   }
 
@@ -49,19 +53,20 @@ export class AttachmentProcessor {
     return DateTime.fromFormat(`${date} ${time}`, 'dd.MM.yyyy HH:mm:ss');
   }
 
-  //TODO: Wenn IDs aus getMeterPointODFromDB korrekt ankommen, insertRow() testen
   async saveAttachmentInDB(attachment: ImapAttachment): Promise<void> {
 
     let id_fin: number | null = null
     return new Promise((resolve, reject) => {
 
       this.getMeterPointIDFromDB(attachment.filename).then((id) =>
-      id_fin = id).then((id) => 
+        id_fin = id).then((id) => 
       this.process(attachment)).then((df) =>
-        this.con.insertRows(df, id_fin as number)
+      this.con.insertRows(df, id_fin as number)
       )
       resolve();
     })
+
+
   }
 
   private getMeterPointIDFromDB(filename: string) : Promise<number | null> {

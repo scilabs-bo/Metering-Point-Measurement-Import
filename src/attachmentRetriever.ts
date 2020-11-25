@@ -1,5 +1,6 @@
 import Connection from 'imap';
 import imaps, { ImapSimple, ImapSimpleOptions, Message } from "imap-simple";
+import { resolve } from 'path';
 import config from './config';
 import { ImapAttachment, ImapAttachmentPart, isImapAttachmentPart } from "./types";
 
@@ -27,15 +28,15 @@ export class AttachmentRetriever {
   async markAsRead(): Promise<void> {
     const promises: Promise<void>[] = [];
     for(const uid of this.retrievedMessageUids) {
-      promises.push(this.markMessageAsRead(uid));
+      promises.push(this.markMessageAsRead(uid)); 
     }
     await Promise.all(promises);
   }
 
   private async searchForUnseenMails(): Promise<Message[] | undefined> {
     await this.connection?.openBox('INBOX');
-    const searchCriteria = ['UNSEEN',  ['SINCE', 'November 25, 2020'] ]; //* since november ... muss später weg
-    const fetchOptions: Connection.FetchOptions = { bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE)'], struct: true };
+    const searchCriteria = ['UNSEEN',  ['SINCE', 'November 25, 2020'] ]; //* since november muss später weg
+    const fetchOptions: Connection.FetchOptions = { bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE)'], struct: true, markSeen:false};
     return await this.connection?.search(searchCriteria, fetchOptions);
   }
   
@@ -58,6 +59,6 @@ export class AttachmentRetriever {
   }
 
   private async markMessageAsRead(uid: string): Promise<void> {
-    return this.connection?.addFlags(uid, "\Seen");
+    return this.connection?.addFlags(uid, '\\SEEN', function(err) { console.log(err)} ); //! Das hier funktioniert noch nicht - aber über markSeen: true in fetch()
   }
 }

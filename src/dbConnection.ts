@@ -60,7 +60,7 @@ export class DBConnection {
 
 const createLoadProfileTableQuery = `
   CREATE TABLE IF NOT EXISTS loadProfileData (
-    date TIMESTAMPTZ NOT NULL,
+    time TIMESTAMPTZ NOT NULL,
     effectiveConsumption FLOAT NOT NULL,
     statusEffCon BOOLEAN NOT NULL,
     blindConsumption FLOAT NOT NULL,
@@ -81,4 +81,4 @@ const createMeterPointTableQuery = `
 `;
 const selectMeterPointIdQuery = 'SELECT id FROM meterPoints WHERE meterPoint = $1';
 const insertMeterPointIdQuery = 'INSERT INTO meterPoints (meterPoint) VALUES ($1) ON CONFLICT (meterPoint) DO NOTHING RETURNING id';
-const insertRowQuery = 'INSERT INTO loadProfileData (date, effectiveConsumption, statusEffCon, blindConsumption, statusBlindCon, activeFeed, statusActiveFeed, blindFeed, statusBlindFeed, meterPoint) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)';
+const insertRowQuery = 'INSERT INTO loadProfileData (time, effectiveConsumption, statusEffCon, blindConsumption, statusBlindCon, activeFeed, statusActiveFeed, blindFeed, statusBlindFeed, meterPoint) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)';
