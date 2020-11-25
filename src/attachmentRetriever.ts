@@ -34,7 +34,7 @@ export class AttachmentRetriever {
 
   private async searchForUnseenMails(): Promise<Message[] | undefined> {
     await this.connection?.openBox('INBOX');
-    const searchCriteria = ['UNSEEN',  ['SINCE', 'November 23, 2020'] ]; //* since november ... muss später weg
+    const searchCriteria = ['UNSEEN',  ['SINCE', 'November 25, 2020'] ]; //* since november ... muss später weg
     const fetchOptions: Connection.FetchOptions = { bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE)'], struct: true };
     return await this.connection?.search(searchCriteria, fetchOptions);
   }

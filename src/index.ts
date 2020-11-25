@@ -2,8 +2,6 @@ import { AttachmentProcessor } from "./attachmentProcessor"
 import { DBConnection } from './dbConnection';
 import { AttachmentRetriever } from './attachmentRetriever';
 
-
-//explicit configuration for connections // extracted from config.js
 async function main() {
   const con = new DBConnection();
   const retriever = new AttachmentRetriever();

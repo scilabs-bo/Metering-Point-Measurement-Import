@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import { ImapAttachment, MeasurementDataRow, RawMeasurementDataRow } from './types';
 import { DBConnection } from "./dbConnection"
 import { kMaxLength } from 'buffer';
+import { rejects } from 'assert';
 
 export class AttachmentProcessor {
    private con: DBConnection;
@@ -25,23 +26,23 @@ export class AttachmentProcessor {
       return {
         date: this.transformDate(row.date, row.time).toISO(),
         effectiveConsumption: parseFloat(row.effectiveConsumption.replace(',','.')),
-        statusEffCon:                    this.setStatusFlag(row.statusEffCon),
+        statusEffCon:                    this.setBooleanFlag(row.statusEffCon),
         blindConsumption:     parseFloat(row.blindConsumption.replace(',','.')),
-        statusBlindCon:                  this.setStatusFlag(row.statusEffCon),
+        statusBlindCon:                  this.setBooleanFlag(row.statusEffCon),
         activeFeed:           parseFloat(row.activeFeed.replace(',','.')),
-        statusActiveFeed:                this.setStatusFlag(row.statusEffCon),
+        statusActiveFeed:                this.setBooleanFlag(row.statusEffCon),
         blindFeed:            parseFloat(row.blindFeed.replace(',','.')),
-        statusBlindFeed:                 this.setStatusFlag(row.statusEffCon)
+        statusBlindFeed:                 this.setBooleanFlag(row.statusEffCon)
       }
     })
     return df
   }
 
-  private setStatusFlag(value: string) {
-    if (value === "Wert ist gültig") {
-      return "true"
+  private setBooleanFlag(value: string) {
+    if (value !== "Wert ist gültig") {
+      return "false"
     } 
-    return "false"
+    return "true"
   }
 
   private transformDate(date: string, time: string): DateTime {
@@ -50,37 +51,24 @@ export class AttachmentProcessor {
 
   //TODO: Wenn IDs aus getMeterPointODFromDB korrekt ankommen, insertRow() testen
   async saveAttachmentInDB(attachment: ImapAttachment): Promise<void> {
-    return new Promise((resolve, reject) => {
- 
-      let id_fk = this.getMeterPointIDFromDB(attachment.filename)
 
-      var df = this.process(attachment).then(function(this: DBConnection, result) {
-        const csvOutputString = result.toCSV();
-        fs.writeFileSync('src/csv_out/' + attachment.filename, csvOutputString);
-        console.log("ID: ", id_fk)
-        //this.con.insertRows(df, id_fk)
-      })
+    let id_fin: number | null = null
+    return new Promise((resolve, reject) => {
+
+      this.getMeterPointIDFromDB(attachment.filename).then((id) =>
+      id_fin = id).then((id) => 
+      this.process(attachment)).then((df) =>
+        this.con.insertRows(df, id_fin as number)
+      )
       resolve();
     })
   }
 
+  private getMeterPointIDFromDB(filename: string) : Promise<number | null> {
 
-  //TODO: Methode fertigstellen
-  private getMeterPointIDFromDB(filename: string) : number {
-    const meterPoint = filename.split('.')[0];
-    let id_fk : number | null = 0;
-
-    if(meterPoint === null) {
-      console.log("Unable to extract meter point identifier from file");
-    }
-
-    let id_db = this.con.getMeterPointId(meterPoint).then(function(this: number , result) {
-      if(result === null) {
-        console.log(`Unable to determine database id of meter point ${meterPoint}`);
-      }
-     // this.id_fk = result;
-    });
-    return id_fk;
+    let meterPoint = filename.split('.')[0];
+    let id_db = this.con.getMeterPointId(meterPoint)
+    return id_db;
   }
 }
 
