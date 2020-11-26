@@ -1,4 +1,6 @@
-export function isImapAttachmentPart(obj: ImapMessagePart): obj is ImapAttachmentPart {
+export function isImapAttachmentPart(
+  obj: ImapMessagePart,
+): obj is ImapAttachmentPart {
   return obj.disposition && obj.disposition.type === 'attachment';
 }
 
@@ -18,25 +20,33 @@ export interface ImapAttachmentPart {
     type: 'attachment';
     params: {
       filename: string;
-    }
-  }
+    };
+  };
 }
 
 export type ImapMessagePart = ImapInlinePart | ImapAttachmentPart;
 
 export interface RawMeasurementDataRow {
-  Datum: string,
-  Uhrzeit: string,
-  'Wirk Verbrauch in KWH': string,
-  'Blind Verbrauch in kvarh': string,
-  'Wirk Einspeisung in KWH': string,
-  'Blind Einspeisung in kvarh': string
+  date: string;
+  time: string;
+  effectiveConsumption: string;
+  statusEffCon: string;
+  blindConsumption: string;
+  statusBlindCon: string;
+  activeFeed: string;
+  statusActiveFeed: string;
+  blindFeed: string;
+  statusBlindFeed: string;
 }
 
 export interface MeasurementDataRow {
-  date: string,
-  effectiveConsumption: number,
-  blindConsumption: number,
-  activeFeed: number,
-  blindFeed: number
+  date: string;
+  effectiveConsumption: number;
+  statusEffCon: boolean;
+  blindConsumption: number;
+  statusBlindCon: boolean;
+  activeFeed: number;
+  statusActiveFeed: boolean;
+  blindFeed: number;
+  statusBlindFeed: boolean;
 }
