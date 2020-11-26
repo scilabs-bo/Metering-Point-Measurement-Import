@@ -1,7 +1,6 @@
-import { AttachmentProcessor } from "./attachmentProcessor"
+import { AttachmentProcessor } from './attachmentProcessor';
 import { DBConnection } from './dbConnection';
 import { AttachmentRetriever } from './attachmentRetriever';
-import { runInThisContext } from "vm";
 
 async function main() {
   const con = new DBConnection();
@@ -10,20 +9,18 @@ async function main() {
 
   await retriever.connect();
   const attachments = await retriever.retrieve();
-  retriever.end()
+  retriever.end();
 
-  await con.connect().then(function() {
-    
+  try {
+    await con.connect();
     for (const attachment of attachments) {
-      processor.saveAttachmentInDB(attachment);
+      await processor.saveAttachmentInDB(attachment);
     }
-    console.log("Connection to DB established.")
-  }).then(function(){
-    retriever.markAsRead()
-  }).catch(function(){
-    console.log("Connection to DB failed.")
-  });
-
+    await con.end();
+  } catch (e) {
+    console.error('Unable to connect to database:');
+    console.error(e);
+  }
 }
 
-void main()
+void main();
