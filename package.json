@@ -13,8 +13,17 @@
     "prettier:write": "npx prettier --config .prettierrc 'src/**/*.ts' --write",
     "prettier:watch": "npx onchange 'src/**/*.ts' -- npx prettier --write {{changed}}"
   },
-  "author": "Katharina Borys/Giulia Winterhoff",
+  "author": "Katharina Borys <katharina.borys@scilabs.de>",
+  "contributors": [ "Giulia Winterhoff <giulia.winterhoff@scilabs.de>", "Fabian Bäumer <fabian.baeumer@scilabs.de>" ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/scilabs-bo/Metering-Point-Measurement-Import.git"
+  },
+  "bugs": {
+    "url": "https://github.com/scilabs-bo/Metering-Point-Measurement-Import/issues"
+  },
+  "homepage": "https://github.com/scilabs-bo/Metering-Point-Measurement-Import#readme",
   "devDependencies": {
     "@types/base64-stream": "^1.0.0",
     "@types/convict": "^5.2.1",
