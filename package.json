@@ -1,7 +1,7 @@
 {
-  "name": "csv_mail",
+  "name": "metering-point-measurement-import",
   "version": "1.0.0",
-  "description": "Test script for connecting to an IMAP server and extracting CSV-Files in order to further process and persist those",
+  "description": "Retrieves metering point measurements via mail and imports the data into a timescale db",
   "main": "build/index.js",
   "scripts": {
     "build": "rm -rf ./build && npx tsc",
