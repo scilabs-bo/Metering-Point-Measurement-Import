@@ -1,0 +1,1 @@
+*/5 * * * * node /usr/src/app/index.js >> /dev/stdout 2>&1

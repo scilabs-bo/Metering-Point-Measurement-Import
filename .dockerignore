@@ -1,0 +1,10 @@
+.git
+grafana
+node_modules
+build
+
+.eslintrc.js
+.gitignore
+.prettierrc
+Dockerfile
+README.md
